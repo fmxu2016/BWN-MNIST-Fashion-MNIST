@@ -26,10 +26,11 @@ class BinaryLinearLayer(nn.Linear):
 class BinarizedMLP(nn.Module):
     def __init__(self):
         super(BinarizedMLP, self).__init__()
-        #self.fc1 = nn.Linear(784, 1024)
+
         self.bwn1 = BinaryLinearLayer(784, 1024)
-        self.bwn2 = BinaryLinearLayer(1024, 1024)
-        self.bwn3 = BinaryLinearLayer(1024, 10)
+        self.bwn2 = BinaryLinearLayer(1024, 512)
+        self.bwn3 = BinaryLinearLayer(512, 256)
+        self.bwn4 = BinaryLinearLayer(256, 10)
 
     def forward(self, x):
         x = torch.flatten(x, 1)
@@ -38,6 +39,8 @@ class BinarizedMLP(nn.Module):
         x = self.bwn2(x)
         x = torch.relu(x)
         x = self.bwn3(x)
+        x = torch.relu(x)
+        x = self.bwn4(x)
 
         return x
 
@@ -57,11 +60,12 @@ test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
 # 实例化模型、损失函数和优化器
 model = BinarizedMLP().to(device)
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.SGD(model.parameters(), lr=0.01)
 
 # 存储每个 epoch 的损失和准确率
 train_loss_list = []
 train_accuracy_list = []
+test_accuracy_list=[]
 
 # 训练模型
 num_epochs = 100
@@ -88,12 +92,29 @@ for epoch in range(num_epochs):
 
     accuracy = 100. * correct / total
     average_loss = total_loss / len(train_loader)
-    print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {average_loss:.4f}, Accuracy: {accuracy:.2f}%')
+
+
+    # 每个epoch中网络在训练集中验证的准确率
+    model.eval()
+    correct = 0
+    total = 0
+    with torch.no_grad():
+        for inputs, labels in test_loader:
+            inputs, labels = inputs.to(device), labels.to(device)
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+    test_accuracy = correct / total
+
+    print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {average_loss:.4f}, Accuracy: {accuracy:.2f}%, Testing Accuracy: {100 * test_accuracy:.2f}%')
+
 
     # 记录每个 epoch 的损失和准确率
     train_loss_list.append(average_loss)
     train_accuracy_list.append(accuracy)
 
+# 保存训练完的模型
 torch.save(model, 'BWN+MNIST+Fashion_MNIST.pth')
 
 # 绘制损失和准确率曲线
