@@ -20,8 +20,6 @@ class BinaryLinearLayer(nn.Linear):
         binary_weight = torch.sign(self.weight)
         return nn.functional.linear(input, binary_weight, self.bias)
 
-
-
 # 定义模型
 class BinarizedMLP(nn.Module):
     def __init__(self):
@@ -109,7 +107,6 @@ for epoch in range(num_epochs):
 
     print(f'Epoch {epoch + 1}/{num_epochs}, Loss: {average_loss:.4f}, Accuracy: {accuracy:.2f}%, Testing Accuracy: {100 * test_accuracy:.2f}%')
 
-
     # 记录每个 epoch 的损失和准确率
     train_loss_list.append(average_loss)
     train_accuracy_list.append(accuracy)
@@ -135,8 +132,6 @@ plt.legend()
 
 plt.tight_layout()
 plt.show()
-
-
 
 # 测试模型
 model.eval()
